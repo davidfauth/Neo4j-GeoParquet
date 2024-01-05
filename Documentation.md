@@ -16,7 +16,10 @@ For geoParquet, the polygon is returned as List so it can be passed into the Neo
 Currently only the Polygon geometry is supported in this procedure.
 
 ### Error conditions
-TBD
+If the parquet file does not exist, the procedure returns "-1"
+If there is an IO error, the procedure returns "-2"
+If there is an error processing the Parquet file, the procedure returns "-3"
+
 
 ### Example
     call com.neo4jparquet.readParquet("/var/lib/neo4j/import/county.parquet") yield value 
@@ -843,6 +846,11 @@ TBD
   "altitudeMode": "clampToGround"
 }
 
+call com.neo4jparquet.readParquet("/var/lib/neo4j/import/countys.parquet") yield value 
+    return value limit 1
+
+    { "errorMessage", "-1"}
+
 ## com.neo4jparquet.readParquetWKT( filename )
 
 ### Syntax
@@ -854,10 +862,12 @@ call com.neo4jparquet.readParquet( filename ) yield value return value;
 ### Returns
 A key-value pair of values from the Parquet file. 
 For geoParquet, the geometry is returned in WKT format.
-Currently, this plugin supports POINT, LINESTRING and POLYGON.
+Currently, this plugin supports POINT, LINESTRING, MULTILINESTRING and POLYGON.
 
 ### Error conditions
-TBD
+If the parquet file does not exist, the procedure returns "-1"
+If there is an IO error, the procedure returns "-2"
+If there is an error processing the Parquet file, the procedure returns "-3"
 
 ### Example
     {
@@ -879,8 +889,13 @@ TBD
   "altitudeMode": "clampToGround"
 }
 
+call com.neo4jparquet.readParquetWKT("/var/lib/neo4j/import/countys.parquet") yield value 
+    return value limit 1
+
+    { "errorMessage", "-1"}
+
 ## Error Codes
-* -1 or "-1" : Invalid H3 Address
-* -2 or "-2" : Invalid Resolution
-* -3 or "-3" : Invalid Latitude
-* -4 or "-4" : Invalid Longitude
+
+* -1 or "-1" : File Not Found
+* -2 or "-2" : IO Error
+* -3 or "-3" : Error Processing Parquet File

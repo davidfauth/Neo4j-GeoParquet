@@ -6,7 +6,7 @@
 
     <groupId>com.neo4jparquet</groupId>
     <artifactId>neo4jparquet</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 
     <properties>
         <neo4j.version>5.15.0</neo4j.version>

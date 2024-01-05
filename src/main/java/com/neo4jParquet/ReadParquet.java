@@ -4,12 +4,9 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.avro.AvroParquetReader;
-import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.hadoop.fs.Path;
-import org.apache.parquet.hadoop.ParquetWriter;
-import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.io.ColumnIOFactory;
 import org.apache.parquet.io.MessageColumnIO;
@@ -18,8 +15,6 @@ import org.apache.parquet.example.data.Group;
 import org.apache.parquet.example.data.simple.convert.GroupRecordConverter;
 import org.apache.parquet.format.converter.ParquetMetadataConverter;
 
-import org.apache.parquet.io.ColumnIOFactory;
-import org.apache.parquet.io.MessageColumnIO;
 import org.apache.parquet.io.RecordReader;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.Type;
@@ -27,33 +22,24 @@ import org.apache.parquet.schema.Type;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.procedure.*;
-import org.neo4j.procedure.builtin.BuiltInDbmsProcedures.StringResult;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
-
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import mil.nga.sf.Geometry;
 import mil.nga.sf.LineString;
+import mil.nga.sf.MultiLineString;
 import mil.nga.sf.MultiPolygon;
 import mil.nga.sf.Point;
 import mil.nga.sf.Polygon;
 import mil.nga.sf.util.GeometryUtils;
 import mil.nga.sf.wkb.GeometryReader;
-
-
 
 public class ReadParquet {
     
@@ -86,7 +72,10 @@ public class ReadParquet {
                     reader = AvroParquetReader.<GenericRecord>builder(file).build();
                     
                 } catch (Exception e) {
-                    resultMessage = "File not found";
+                    Map<String, Object> result = new HashMap<>();
+				    results.add(result);  
+                    resultMessage = "-1";
+                    result.put("errorMessage", resultMessage);
                 }
 
                 if (file != null && reader !=null){
@@ -104,7 +93,10 @@ public class ReadParquet {
                     } catch (IOException e) {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
-                        resultMessage = "IO Error";
+                        Map<String, Object> result = new HashMap<>();
+				        results.add(result);  
+                        resultMessage = "-2";
+                        result.put("errorMessage", resultMessage);
                     }
 
                     try {
@@ -183,6 +175,28 @@ public class ReadParquet {
                                                     geoResults = geoResults + ")";
                                                     result.put("Geometry",  geoResults);
                                                 }
+
+                                                if (geoType.compareToIgnoreCase("MULTILINESTRING")==0){
+                                                    Double lonCoord = 0.0;
+                                                    Double latCoord = 0.0;
+                                                    int counter = 1;
+                                                    String geoResults = "MULTILINESTRING(";
+                                                    mil.nga.sf.MultiLineString varmultiLineString  = (MultiLineString) GeometryReader.readGeometry(g.getBinary(field, index).getBytes());
+                                                    for (LineString lineString : varmultiLineString.getLineStrings()){
+                                                        for (Point point : lineString.getPoints()) {
+                                                            lonCoord = point.getY();
+                                                            latCoord = point.getX(); 
+                                                            if (counter > 1){
+                                                                geoResults = geoResults + ", ( " + latCoord + " " + lonCoord + ")";
+                                                            } else {
+                                                                geoResults = geoResults + "( " + latCoord + " " + lonCoord + ")";
+                                                            }
+                                                            counter++;
+                                                        }
+                                                    }
+                                                    geoResults = geoResults + ")";
+                                                    result.put("Geometry",  geoResults);
+                                                }
                                                 // Multipolygon
                                                 if (geoType.compareToIgnoreCase("MULTIPOLYGON")==0){
                                                     Double lonCoord = 0.0;
@@ -218,15 +232,10 @@ public class ReadParquet {
                                                                     geoResults = geoResults  + ", " + lonCoord + " " + latCoord;
                                                                 }
                                                                 iterCounter++;
-                                                                //strlatLongList.add(latCoord + "," + lonCoord);
                                                             } 
                                                             geoResults = geoResults + ")";
-                                                            //hashKey = "Ring_" + zz;
-
-                                                            //multiPolyHashMap.put(hashKey,strlatLongList);
                                                         }
                                                         geomHashKey = "Geometry_" + geomCounter;
-                                                        //result.put(geomHashKey,multiPolyHashMap);
                                                         geomCounter++;
                                                     } 
                                                     geoResults = geoResults + "))";   
@@ -242,7 +251,10 @@ public class ReadParquet {
                     } catch (IOException e) {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
-                        resultMessage = "Error Processing Parquet File";
+                        Map<String, Object> result = new HashMap<>();
+				        results.add(result);  
+                        resultMessage = "-3";
+                        result.put("errorMessage", resultMessage);
                     }
                 }
                 if (resultMessage.isEmpty()){
